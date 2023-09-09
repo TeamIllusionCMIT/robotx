@@ -1,4 +1,4 @@
-FROM ros:humble-ros-base-jammy
+FROM ros:humble-ros-base-jammy as base
 
 # Set up timezone
 ENV TZ=Etc/UTC
@@ -6,8 +6,9 @@ RUN echo $TZ > /etc/timezone && \
   ln -fs /usr/share/zoneinfo/$TZ /etc/localtime
 
 # Install required utilities
-RUN apt update \
-&& apt install -y --no-install-recommends \
+FROM base as installs
+RUN apt-get update \
+&& apt-get install -y --no-install-recommends \
       build-essential \
       cmake \
       git \
@@ -32,6 +33,7 @@ ARG ROSDIST=humble
 ARG GZDIST=garden
 ENV GZ_VERSION garden
 
+from installs as install_tools
 # Set up repo to install Ignition
 RUN /bin/sh -c 'wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg' \
   && /bin/sh -c 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null'
@@ -52,6 +54,7 @@ RUN apt update \
 && rm -rf /var/lib/apt/lists/* \
 && apt clean -qq
 
+from install_tools as runtime
 # Copy over script to Docker container
 COPY ./run_my_system.bash /
 
