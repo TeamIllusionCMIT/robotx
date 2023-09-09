@@ -9,17 +9,9 @@ RUN echo $TZ > /etc/timezone && \
 FROM base as installs
 RUN apt-get update \
 && apt-get install -y --no-install-recommends \
-      build-essential \
-      cmake \
-      git \
       gnupg2 \
       lsb-release \
-      nano \
-      python3-dbg \
-      python3-setuptools \
-      python3-vcstool \
-      ruby \
-      sudo \
+      python3 \
       wget
 
 # Set up locale
@@ -45,7 +37,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get install -y --no-install-recommends \
     ros-${ROSDIST}-actuator-msgs \
     ros-${ROSDIST}-ros-gzgarden \
-    rm -rf /var/lib/apt/lists/* \
+    && rm -rf /var/lib/apt/lists/* \
     && apt-get clean -qq
 
 from install_tools as runtime
