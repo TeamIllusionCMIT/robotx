@@ -15,4 +15,4 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build the Docker image
-      run: docker build . --file TI_VRX_Docker/Dockerfile --tag my-image-name:$(date +%s)
+      run: cd TI_VRX_Docker && docker build . --file Dockerfile --tag robotx:$(date +%s)
