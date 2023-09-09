@@ -25,7 +25,7 @@ RUN apt-get update \
 && apt-get clean -qq
 
 # Set up locale
-RUN sudo apt-get install locales \
+RUN sudo apt-get update && sudo apt-get install locales \
 && sudo locale-gen en_US en_US.UTF-8 \
 && sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 
