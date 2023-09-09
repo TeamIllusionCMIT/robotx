@@ -22,10 +22,10 @@ RUN apt-get update \
       sudo \
       wget \
 && rm -rf /var/lib/apt/lists/* \
-&& apt clean -qq
+&& apt-get clean -qq
 
 # Set up locale
-RUN sudo apt update && sudo apt install locales \
+RUN sudo apt-get install locales \
 && sudo locale-gen en_US en_US.UTF-8 \
 && sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 
@@ -40,19 +40,17 @@ RUN /bin/sh -c 'wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share
 
 
 # Install Gazebo (needed for message imports with ros-humble-ros-gzgarden)
-RUN apt update \
-  && apt install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
      gz-${GZDIST} \
   && rm -rf /var/lib/apt/lists/* \
-  && apt clean -qq
+  && apt-get clean -qq
 
 # Install example ROS package
-RUN apt update \
-&& apt install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
     ros-${ROSDIST}-actuator-msgs \
     ros-${ROSDIST}-ros-gzgarden \
 && rm -rf /var/lib/apt/lists/* \
-&& apt clean -qq
+&& apt-get clean -qq
 
 from install_tools as runtime
 # Copy over script to Docker container
