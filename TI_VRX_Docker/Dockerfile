@@ -42,5 +42,5 @@ COPY ./run_my_system.bash /
 COPY ./ros_entrypoint.sh /
 COPY ./wamv_demo.py /
 
-RUN chmod +x /ros_entrypoint.sh
-RUN chmod +x /run_my_system.bash
+RUN chmod +x /ros_entrypoint.sh \
+&& chmod +x /run_my_system.bash
