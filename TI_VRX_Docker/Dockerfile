@@ -38,7 +38,7 @@ RUN /bin/sh -c 'wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share
 
 
 # Install Gazebo (needed for message imports with ros-humble-ros-gzgarden)
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
      gz-${GZDIST}
 
 # Install example ROS package
