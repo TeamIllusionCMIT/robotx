@@ -19,7 +19,7 @@
 # 2 {-33.7220832884, 150.6739127877, 0.479425538604203, 0.88775825618903728}
 # 3 {-33.7226013209, 150.6767504609858, 0.479425538604203, 0.8775825618903728:
 
-# The graph array for these measures would be the distance from each point to 
+# The graph array for these measures would be the distance from each point to
 # all of the others in a matrix:
 
 # [ 0->0 0->1 0->2 0->3 ]
@@ -34,14 +34,14 @@
 # 0->2 2->1 1->3
 # 0->2 2->3 3->1
 # 0->3 3->1 1->2
-# 0->3 3->2 2->1 
+# 0->3 3->2 2->1
 
 # Task 3 - identify the objects and publish their locations.
 #
 # You can read the indivudal frames from the wamv sensor defined for each
 # camera - /wamv/sensors/cameras/middle_right_camera/image_raw - for instance
 # for the middle right camera. Process the image and write the coordinates
-# to a PoseStamped message in the /vrx/perception/landmark topic.  
+# to a PoseStamped message in the /vrx/perception/landmark topic.
 
 # Task 4 - steer toward an acoustic beacon
 
@@ -106,7 +106,10 @@ class WallopingWindowBlind(Node):
         self.acoustics_range = 0.0
         self.acoustics_bearing = 0.0
         self.acoustics_sub = self.create_subscription(
-            ParamVec, "wamv/sensors/acoustics/receiver/range_bearing", self.acousticsData, 10
+            ParamVec,
+            "wamv/sensors/acoustics/receiver/range_bearing",
+            self.acousticsData,
+            10,
         )
 
         self.goal_x = 0.0
@@ -162,7 +165,7 @@ class WallopingWindowBlind(Node):
         self.landmark_msg.pose.position.z = 0.0
 
         self.wildlife_pub = self.create_publisher(
-            PoseStamped, "/vrx/wildlife/animals",  qos_profile=pub_qos
+            PoseStamped, "/vrx/wildlife/animals", qos_profile=pub_qos
         )
 
         self.wildlife_msg = PoseStamped()
@@ -222,10 +225,9 @@ class WallopingWindowBlind(Node):
         y = msg.orientation.y
         z = msg.orientation.z
         w = msg.orientation.w
-        
-        self.wamv_roll = math.atan2(2.0 * (w * x + y * z), \
-                                    1.0 - 2.0 * (x * x + y * y))
-                                    
+
+        self.wamv_roll = math.atan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x * x + y * y))
+
         tmp = 2.0 * (w * y - z * x)
         if tmp > 1.0:
             tmp = 1.0
@@ -233,8 +235,7 @@ class WallopingWindowBlind(Node):
             tmp = -1.0
         self.wamv_pitch = math.asin(tmp)
 
-        self.wamv_yaw = math.atan2(2.0 * (w * z + x * y), \
-                                   1.0 - 2.0 * (y * y + z * z))
+        self.wamv_yaw = math.atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
         self.wamv_heading = self.wamv_yaw
 
     def goalPos(self, msg):
@@ -243,11 +244,11 @@ class WallopingWindowBlind(Node):
         self.goal_z = msg.pose.position.z
         self.goal_w = msg.pose.orientation.w
 
-# Worked out by Christian Sopa, using his assistant, ChatGPT. ChatGPT came up with
-# the idea of iterating the PoseArray. We talked about where this could best be done
-# and decided, in the interest of time, to go with it right here and discuss the
-# process in more detail over the next month.
- 
+    # Worked out by Christian Sopa, using his assistant, ChatGPT. ChatGPT came up with
+    # the idea of iterating the PoseArray. We talked about where this could best be done
+    # and decided, in the interest of time, to go with it right here and discuss the
+    # process in more detail over the next month.
+
     def waypointList(self, msg):
         self.numPoints = 1
         self.waypointArray = []
@@ -258,27 +259,28 @@ class WallopingWindowBlind(Node):
             loc = (position.x, position.y, 0.0, 0.0)
             self.waypointArray.append(loc)
             self.numPoints += 1
-       
+
     def getDistance(self, point1, point2):
-        loc1=(point1[0], point1[1])
-        loc2=(point2[0], point2[1])
-        return hs.haversine(loc1,loc2,unit=Unit.METERS)
+        loc1 = (point1[0], point1[1])
+        loc2 = (point2[0], point2[1])
+        return hs.haversine(loc1, loc2, unit=Unit.METERS)
 
     def getBearing(self, point1, point2):
         theta_a = math.radians(point1[0])
         theta_b = math.radians(point2[0])
         X = math.cos(theta_b) * math.sin(math.radians(point2[1] - point1[1]))
-        Y = math.cos(theta_a) * math.sin(theta_b) - math.sin(theta_a) \
-            * math.cos(theta_b) * math.cos(math.radians(point2[1]- point1[1]))
+        Y = math.cos(theta_a) * math.sin(theta_b) - math.sin(theta_a) * math.cos(
+            theta_b
+        ) * math.cos(math.radians(point2[1] - point1[1]))
         return math.atan2(X, Y)
 
-# https://www.geeksforgeeks.org/traveling-salesman-problem-tsp-implementation/
- 
+    # https://www.geeksforgeeks.org/traveling-salesman-problem-tsp-implementation/
+
     def computeCosts(self, waypointArray):
         V = self.numPoints
         rows, cols = (V, V)
         graph = [[0 for i in range(cols)] for j in range(rows)]
-            
+
         for i in range(cols):
             for j in range(rows):
                 loc1 = (waypointArray[i][0], waypointArray[i][1])
@@ -307,7 +309,6 @@ class WallopingWindowBlind(Node):
         return graph
 
     def waypointSelection(self, graph, s):
-        
         # make an array to hold the waypoint identification
         vertex = []
         for i in range(self.numPoints):
@@ -317,7 +318,7 @@ class WallopingWindowBlind(Node):
         # store minimum weight Hamiltonian Cycle
         min_path = maxsize
         best_path = ""
-        next_permutation=permutations(vertex)
+        next_permutation = permutations(vertex)
         for i in next_permutation:
             # store current Path weight(cost)
             current_pathweight = 0
@@ -361,11 +362,18 @@ class WallopingWindowBlind(Node):
         self.thrust_msg.data = self.right
         self.left_thrust_pub.publish(self.thrust_msg)
         self.left_pos_pub.publish(self.pos_msg)
-        steering_template = "Heading: {!r} BeARING: {!r} Error: {!r} Left: {!r} Right: {!r}"
-        print(steering_template.format(self.wamv_heading * 180 / math.pi, \
-                                       self.bearing * 180 / math.pi, \
-                                       error, self.left, \
-                                       self.right))
+        steering_template = (
+            "Heading: {!r} BeARING: {!r} Error: {!r} Left: {!r} Right: {!r}"
+        )
+        print(
+            steering_template.format(
+                self.wamv_heading * 180 / math.pi,
+                self.bearing * 180 / math.pi,
+                error,
+                self.left,
+                self.right,
+            )
+        )
 
     def circleLeft(self):
         self.right = 60.0
@@ -376,9 +384,11 @@ class WallopingWindowBlind(Node):
         self.left_thrust_pub.publish(self.thrust_msg)
         self.loopCount += 1
         steering_template = "Heading: {!r} Left: {!r} Right: {!r}"
-        print(steering_template.format(self.wamv_heading * 180 / math.pi, \
-                                       error, self.left, \
-                                       self.right))
+        print(
+            steering_template.format(
+                self.wamv_heading * 180 / math.pi, error, self.left, self.right
+            )
+        )
 
     def circleRight(self):
         self.right = 40.0
@@ -389,9 +399,11 @@ class WallopingWindowBlind(Node):
         self.left_thrust_pub.publish(self.thrust_msg)
         self.loopCount += 1
         steering_template = "Heading: {!r} Left: {!r} Right: {!r}"
-        print(steering_template.format(self.wamv_heading * 180 / math.pi, \
-                                       error, self.left, \
-                                       self.right))
+        print(
+            steering_template.format(
+                self.wamv_heading * 180 / math.pi, error, self.left, self.right
+            )
+        )
 
     def moveForward(self):
         self.right_thrust_pub.publish(self.thrust_msg)
@@ -421,14 +433,18 @@ class WallopingWindowBlind(Node):
                     self.distance = self.getDistance(self.loc1, self.loc2)
                     self.bearing = self.getBearing(self.loc1, self.loc2)
                     course_template = "Bearing: {!r} Distance: {!r}"
-                    print(course_template.format(self.bearing * 180 / math.pi, self.distance))
+                    print(
+                        course_template.format(
+                            self.bearing * 180 / math.pi, self.distance
+                        )
+                    )
                     if self.task_state == ("initial" or "ready"):
                         print("Waiting for stationkeeping task to start...")
                     elif self.task_state == "running":
                         if self.distance > 1.0:
                             print("Taking up Station.")
                             self.steer(30.0)
-                        else :
+                        else:
                             print("Keeping Station.")
                             self.stop()
                     elif self.task_state == "finished":
@@ -443,7 +459,9 @@ class WallopingWindowBlind(Node):
                         print("Waiting for wayfinding task to start...")
                     elif self.task_state == "ready":
                         print("Computing path costs.")
-                        new_path = self.waypointSelection(self.computeCosts(self.waypointArray),0)
+                        new_path = self.waypointSelection(
+                            self.computeCosts(self.waypointArray), 0
+                        )
                         print(new_path)
                     elif self.task_state == "running":
                         self.steer(30.0)
@@ -463,7 +481,7 @@ class WallopingWindowBlind(Node):
                         print("Waiting for acoustic perception task to start...")
                     elif self.task_state == "running":
                         print("Waiting for acoustic perception task to complete...")
-                    elif self.task_state =="finished":
+                    elif self.task_state == "finished":
                         self.stop()
                         print("Task ended...")
                         rclpy.shutdown()
@@ -472,7 +490,7 @@ class WallopingWindowBlind(Node):
                         print("Waiting for wildlife task to start...")
                     elif self.task_state == "running":
                         print("Waiting for wildlife task to complete...")
-                    elif self.task_state =="finished":
+                    elif self.task_state == "finished":
                         self.stop()
                         print("Task ended...")
                 case "follow_the_path":
@@ -480,14 +498,18 @@ class WallopingWindowBlind(Node):
                         print("Waiting for follow the path task to start...")
                     elif self.task_state == "running":
                         print("Waiting for follow the path task to complete...")
-                    elif self.task_state =="finished":
+                    elif self.task_state == "finished":
                         self.stop()
                         print("Task ended...")
                 case "acoustic_tracking":
                     self.distance = self.acoustics_range
                     self.bearing = self.acoustics_bearing
                     course_template = "Bearing: {!r} Distance: {!r}"
-                    print(course_template.format(self.bearing * 180 / math.pi, self.distance))
+                    print(
+                        course_template.format(
+                            self.bearing * 180 / math.pi, self.distance
+                        )
+                    )
                     if self.task_state == ("initial" or "ready"):
                         print("Waiting for Acoustics Tracking task to start...")
                     elif self.task_state == "running":
@@ -495,7 +517,7 @@ class WallopingWindowBlind(Node):
                             print("Following Beacon.")
                             self.bearing = self.acoustics_bearing
                             self.steer(30.0)
-                        else :
+                        else:
                             print("Found Beacon.")
                             self.stop()
                     elif self.task_state == "finished":
@@ -507,7 +529,7 @@ class WallopingWindowBlind(Node):
                         print("Waiting for scan dock and deliver task to start...")
                     elif self.task_state == "running":
                         print("Waiting for scan dock and deliver task to complete...")
-                    elif self.task_state =="finished":
+                    elif self.task_state == "finished":
                         self.stop()
                         print("Task ended...")
                 case _:
