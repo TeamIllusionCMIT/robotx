@@ -366,6 +366,39 @@ class WallopingWindowBlind(Node):
                                        self.bearing * 180 / math.pi, \
                                        error, self.left, \
                                        self.right))
+    # def steer(self):
+    #     #commented incase causes any errors;needs testing
+    #     # Calculate position error (Euclidean distance)
+    #     position_error = math.sqrt(
+    #         (self.goal_x - self.wamv_latitude) ** 2 +
+    #         (self.goal_y - self.wamv_longitude) ** 2
+    #     )
+        
+    #     # Calculate heading error (positive difference in radians)
+    #     heading_error = abs(self.goal_w - self.wamv_heading)
+
+    #     # Calculate the total pose error using the given formula
+    #     turn_thrust = 0.5*heading_error
+    #     k = 0.75  # Weighting term guess
+    #     pose_error = position_error + (k **position_error)*( heading_error) #based on document
+
+    #     # Now, adjust thrust based on the pose error
+    #     max_thrust = 100.0  # Define your maximum thrust value here
+    #     min_thrust = 0.0    # Define your minimum thrust value here
+
+        
+    #     thrust_adjustment = pose_error*max_thrust 
+
+    #     # Limit thrust within the specified range
+    #     thrust_adjusted = max(min_thrust, min(max_thrust, thrust_adjustment))
+    #     #in theory the bottom segment will ensure it rotates first till it points to the goal, then drives to goal 
+    #     if !(0 <= heading_error <= 5):
+    #         thrust_adjusted =0
+        
+    #     # This is a bit of a guess. To account for rotation i'm adding power to a specific motor based on
+    #     # heading error(it may have to spin completly 360 to to orient itself)
+    #     self.left_thrust_pub.publish(Float64(data=thrust_adjusted+turn_thrust))
+    #     self.right_thrust_pub.publish(Float64(data=thrust_adjusted))
 
     def circleLeft(self):
         self.right = 60.0
