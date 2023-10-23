@@ -53,7 +53,21 @@
 
 # You can subscribe to the location data and use that, but it is sent at
 # a deliberately slow rate. You really want to use perception to find the
-# animals.
+# animals. Alex has created code that goes to the animals in turn and is working 
+# on circling them.
+
+# Task 6 -
+#
+#
+
+# Task 7 -
+#
+#
+
+# Task 8 -
+#
+#
+
 
 import rclpy
 from rclpy.node import Node
@@ -64,6 +78,9 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import PoseArray
 from sensor_msgs.msg import NavSatFix
 from sensor_msgs.msg import Imu
+from sensor_msgs.msg import Image # Image is the message type per Automaic Addison
+from cv_bridge import CvBridge    # Package to convert between ROS and OpenCV Images
+import cv2                        # OpenCV library
 from sys import maxsize
 from itertools import permutations
 import haversine as hs
@@ -106,8 +123,15 @@ class WallopingWindowBlind(Node):
         self.acoustics_range = 0.0
         self.acoustics_bearing = 0.0
         self.acoustics_sub = self.create_subscription(
-            ParamVec, "wamv/sensors/acoustics/receiver/range_bearing", self.acousticsData, 10
+            ParamVec, "/wamv/sensors/acoustics/receiver/range_bearing", self.acousticsData, 10
         )
+
+        self.image_frame = ""
+        self.image_sub = self.create_subscription(
+            Image, "/wamv/sensors/cameras/middle_left_camera/image_raw", self.imageCapture, 10
+        )
+
+        self.br = CvBridge()
 
         self.goal_x = 0.0
         self.goal_y = 0.0
@@ -121,6 +145,35 @@ class WallopingWindowBlind(Node):
         self.waypointArray = ""
         self.waypoint_sub = self.create_subscription(
             PoseArray, "/vrx/wayfinding/waypoints", self.waypointList, 10
+        )
+        
+# From discussions with Alex. The animal position is passed every 10 seconds and
+# in the same fromat as the Stationkeeping Goal, so we make three copies of the
+# goal and run from that until we figure out perception.
+
+        
+        self.animal0_x = 0.0
+        self.animal0_y = 0.0
+        self.animal0_z = 0.0
+        self.animal0l_w = 0.0
+        self.animal0_sub = self.create_subscription(
+            PoseStamped, "/vrx/wildlife/animal0/pose", self.animal0Pos, 10
+        )
+
+        self.animal1_x = 0.0
+        self.animal1_y = 0.0
+        self.animal1_z = 0.0
+        self.animal1l_w = 0.0
+        self.animal1_sub = self.create_subscription(
+            PoseStamped, "/vrx/wildlife/animal1/pose", self.animal1Pos, 10
+        )
+
+        self.animal2_x = 0.0
+        self.animal2_y = 0.0
+        self.animal2_z = 0.0
+        self.animal2l_w = 0.0
+        self.animal2_sub = self.create_subscription(
+            PoseStamped, "/vrx/wildlife/animal0/pose", self.animal2Pos, 10
         )
 
         pub_qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
@@ -242,6 +295,28 @@ class WallopingWindowBlind(Node):
         self.goal_y = msg.pose.position.y
         self.goal_z = msg.pose.position.z
         self.goal_w = msg.pose.orientation.w
+        
+# From discussions with Alex. The animal position is passed every 10 seconds and
+# in the same fromat as the Stationkeeping Goal, so this is 3 copies of that listener
+# with the appropriate changes.
+
+    def animal0Pos(self, msg):
+        self.animal0_x = msg.pose.position.x
+        self.animal0_y = msg.pose.position.y
+        self.animal0_z = msg.pose.position.z
+        self.animal0_w = msg.pose.orientation.w
+
+    def animal1Pos(self, msg):
+        self.animal1_x = msg.pose.position.x
+        self.animal1_y = msg.pose.position.y
+        self.animal1_z = msg.pose.position.z
+        self.animal1_w = msg.pose.orientation.w
+
+    def animal2Pos(self, msg):
+        self.animal2_x = msg.pose.position.x
+        self.animal2_y = msg.pose.position.y
+        self.animal2_z = msg.pose.position.z
+        self.animal2_w = msg.pose.orientation.w
 
 # Worked out by Christian Sopa, using his assistant, ChatGPT. ChatGPT came up with
 # the idea of iterating the PoseArray. We talked about where this could best be done
@@ -258,7 +333,25 @@ class WallopingWindowBlind(Node):
             loc = (position.x, position.y, 0.0, 0.0)
             self.waypointArray.append(loc)
             self.numPoints += 1
-       
+
+    # Sample code from Automatic Addsion's post
+    # modified to suit VRX Application
+    def imageCapture(self, data):
+        """
+        Callback function.
+        """
+        # Display the message on the console
+        self.get_logger().info('Receiving video frame')
+        print("Receiving video frame")
+
+        # Convert ROS Image message to OpenCV image
+        current_frame = self.br.imgmsg_to_cv2(data)
+
+        # Display image
+        cv2.imshow("camera", current_frame)
+
+        cv2.waitKey(1)
+
     def getDistance(self, point1, point2):
         loc1=(point1[0], point1[1])
         loc2=(point2[0], point2[1])
@@ -487,6 +580,7 @@ class WallopingWindowBlind(Node):
                     if self.task_state == ("initial" or "ready"):
                         print("Waiting for perception task to start...")
                     elif self.task_state == "running":
+                        print("Perception task is running")
                         self.publishBuoyLoc()
                     elif self.task_state == "finished":
                         print("Task ended...")
@@ -496,14 +590,62 @@ class WallopingWindowBlind(Node):
                         print("Waiting for acoustic perception task to start...")
                     elif self.task_state == "running":
                         print("Waiting for acoustic perception task to complete...")
+                        self.bearing = self.pinger_bearing
+                        self.distance = self.pinger_range
+                        if self.distance > 1.0:
+                            print("Chasing the target.")
+                            self.steer(30.0)
+                        else :
+                            print("On top of target.")
+                            self.stop()
                     elif self.task_state =="finished":
                         self.stop()
                         print("Task ended...")
                         rclpy.shutdown()
+                        
+# From discussions with Alex. The animal position is passed every 10 seconds and
+# in the same fromat as the Stationkeeping Goal, so we are going to set the new heading
+# and expected distance from those messages until we work out how perception can do
+# the job better.
+
                 case "wildlife":
-                    if self.task_status == ("initial" or "ready"):
+                    loc_template = "Lat: {!r} Lon: {!r}"
+                    print(loc_template.format(self.wamv_latitude, self.wamv_longitude))
+                    print(loc_template.format(self.goal_x, self.goal_y))
+                    self.loc1 = (self.wamv_latitude, self.wamv_longitude)
+                    course_template = "Chasing the Target. Bearing: {!r} Distance: {!r}"
+                    print(course_template.format(self.bearing * 180 / math.pi, self.distance))
+                    if self.task_state == ("initial" or "ready"):
                         print("Waiting for wildlife task to start...")
                     elif self.task_state == "running":
+                        if self.animal0_x < 0.0 and self.animal0_comp > 0:
+                            self.loc2 = (self.animal0_x, self.animal0_y)
+                            self.distance = self.getDistance(self.loc1, self.loc2)
+                            self.bearing = self.getBearing(self.loc1, self.loc2)
+                            if self.distance > 1.0:
+                                print(course_template.format(self.bearing * 180 / math.pi, self.distance))
+                                self.steer(30.0)
+                            else :
+                                print("Completed animal 0.")
+                            self.stop()
+                        if self.animal1_x < 0.0 and self.animal1_comp > 0:
+                            self.loc2 = (self.animal1_x, self.animal1_y)
+                            self.distance = self.getDistance(self.loc1, self.loc2)
+                            self.bearing = self.getBearing(self.loc1, self.loc2)
+                            if self.distance > 1.0:
+                                print(course_template.format(self.bearing * 180 / math.pi, self.distance))
+                                self.steer(30.0)
+                            else :
+                                print("Completed animal 1.")
+                        if self.animal2_x < 0.0 and self.animal2_comp > 0:
+                            self.loc2 = (self.animal2_x, self.animal1_y)
+                            self.distance = self.getDistance(self.loc1, self.loc2)
+                            self.bearing = self.getBearing(self.loc1, self.loc2)
+                            if self.distance > 1.0:
+                                print(course_template.format(self.bearing * 180 / math.pi, self.distance))
+                                self.steer(30.0)
+                            else :
+                                print("Completed animal 2.")
                         print("Waiting for wildlife task to complete...")
                     elif self.task_state =="finished":
                         self.stop()
@@ -526,7 +668,6 @@ class WallopingWindowBlind(Node):
                     elif self.task_state == "running":
                         if self.distance > 1.0:
                             print("Following Beacon.")
-                            self.bearing = self.acoustics_bearing
                             self.steer(30.0)
                         else :
                             print("Found Beacon.")

@@ -18,6 +18,7 @@ RUN apt-get update \
       gnupg2 \
       lsb-release \
       python3 \
+      python3-pip \
       wget \
       locales
 
@@ -36,11 +37,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       && rm -rf /var/lib/apt/lists/* \
       && apt-get clean -qq
 
+RUN python3 -m pip install haversine
 
 FROM install_tools as runtime
 COPY ./run_my_system.bash /
 COPY ./ros_entrypoint.sh /
-COPY ./wamv_demo.py /
+COPY ./run_task_trials.py /
 
 RUN chmod +x /ros_entrypoint.sh \
 && chmod +x /run_my_system.bash
